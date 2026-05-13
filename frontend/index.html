@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-black">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-SOC Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.25), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(168,85,247,0.2), transparent 35%),
+        #020617;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 0 30px rgba(59,130,246,0.08);
+    }
+    .glow {
+      box-shadow: 0 0 25px rgba(59,130,246,0.35);
+    }
+  </style>
+</head>
+
+<body class="h-full text-slate-200 font-sans">
+<div id="root" class="h-full"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const API_BASE = "http://127.0.0.1:8000/api";
+
+const RiskBadge = ({ risk }) => {
+  const styles = {
+    "Normal": "bg-emerald-500/20 text-emerald-300 border-emerald-400/30",
+    "Suspicious": "bg-yellow-500/20 text-yellow-300 border-yellow-400/30",
+    "High Risk": "bg-orange-500/20 text-orange-300 border-orange-400/30",
+    "Critical": "bg-red-500/20 text-red-300 border-red-400/30",
+  };
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs border ${styles[risk] || "bg-slate-500/20 text-slate-300"}`}>
+      {risk}
+    </span>
+  );
+};
+
+const StatCard = ({ title, value, color }) => (
+  <div className="glass rounded-2xl p-6">
+    <p className="text-slate-400 text-sm">{title}</p>
+    <h2 className={`text-4xl font-bold mt-2 ${color || "text-white"}`}>{value}</h2>
+  </div>
+);
+
+const DashboardPage = () => {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    const load = () => {
+      fetch(`${API_BASE}/dashboard`)
+        .then(res => res.json())
+        .then(data => setStats(data))
+        .catch(() => setStats(null));
+    };
+    load();
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!stats) return <div className="p-8 text-blue-300">Loading AI-SOC dashboard...</div>;
+
+  return (
+    <div className="p-8 space-y-8">
+      <div>
+        <h1 className="text-4xl font-bold text-white">AI-Powered SOC Dashboard</h1>
+        <p className="text-slate-400 mt-2">Real-time intrusion detection, alert monitoring and security analytics</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatCard title="Total Events Logged" value={stats.total_logs} />
+        <StatCard title="High Risk Alerts" value={stats.high_risk_alerts} color="text-red-400" />
+        <StatCard title="AI Engine Status" value="ACTIVE" color="text-emerald-400" />
+        <StatCard title="Monitoring Mode" value="LIVE" color="text-blue-400" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="glass rounded-2xl p-6">
+          <h2 className="text-xl font-semibold text-white mb-5">Event Frequency</h2>
+          <div className="space-y-4">
+            {stats.events_over_time.map(item => (
+              <div key={item.name}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>{item.name}</span>
+                  <span className="text-blue-300">{item.count}</span>
+                </div>
+                <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full glow"
+                    style={{ width: `${Math.min(item.count / 2, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="glass rounded-2xl p-6">
+          <h2 className="text-xl font-semibold text-white mb-5">Top Source IPs</h2>
+          <div className="space-y-4">
+            {stats.top_source_ips.length === 0 ? (
+              <p className="text-slate-400">No suspicious IP activity yet.</p>
+            ) : (
+              stats.top_source_ips.map(item => (
+                <div key={item.ip}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-mono">{item.ip}</span>
+                    <span className="text-red-300">{item.count}</span>
+                  </div>
+                  <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-red-500 rounded-full"
+                      style={{ width: `${Math.min(item.count * 2, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LogsPage = () => {
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    const load = () => {
+      fetch(`${API_BASE}/logs`)
+        .then(res => res.json())
+        .then(data => setLogs(data))
+        .catch(() => setLogs([]));
+    };
+    load();
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="p-8">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-5xl font-bold text-white">
+        Live Security Logs
+      </h1>
+
+      <a
+        href="http://127.0.0.1:8000/api/download-logs"
+        target="_blank"
+        class="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg transition"
+      >
+        Download Logs
+      </a>
+    </div>
+
+      <div className="glass rounded-2xl overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-slate-950/70 text-slate-300">
+            <tr>
+              <th className="p-4">Time</th>
+              <th className="p-4">Source IP</th>
+              <th className="p-4">Event</th>
+              <th className="p-4">Risk</th>
+              <th className="p-4">Attack Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.length === 0 ? (
+              <tr><td className="p-6 text-slate-400" colSpan="5">No logs received yet.</td></tr>
+            ) : logs.map(log => (
+              <tr key={log.id} className="border-t border-slate-700/60 hover:bg-blue-500/5">
+                <td className="p-4">{new Date(log.timestamp).toLocaleString("en-GB")}</td>
+                <td className="p-4 font-mono text-blue-300">{log.source_ip}</td>
+                <td className="p-4">{log.event_type}</td>
+                <td className="p-4"><RiskBadge risk={log.ai_analysis.risk} /></td>
+                <td className="p-4 text-slate-300">{log.ai_analysis.attack_type || "Normal"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const BlockchainPage = () => {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const load = () => {
+      fetch(`${API_BASE}/blockchain`)
+        .then(res => res.json())
+        .then(data => setData(data))
+        .catch(() => setData(null));
+    };
+    load();
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!data) return <div className="p-8 text-blue-300">Loading blockchain ledger...</div>;
+
+  return (
+    <div className="p-8">
+  <h1 className="text-4xl font-bold mb-2 text-white">
+    Blockchain Integrity Ledger
+  </h1>
+
+  <p className="text-slate-400 mb-8">
+    Critical alerts are stored in a tamper-evident chain.
+  </p>
+
+  {data.chain.slice().reverse().map(block => (
+    <div
+      key={block.index}
+      className="glass p-6 rounded-2xl mb-6 border border-slate-700 shadow-xl"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-blue-300 font-bold text-xl">
+          Block #{block.index}
+        </h3>
+
+        <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs">
+          Integrity Verified
+        </span>
+      </div>
+
+      <p className="text-xs text-slate-400 mb-5">
+        {new Date(block.timestamp).toLocaleString("en-GB")}
+      </p>
+
+      {block.data?.event === "genesis" ? (
+        <div className="text-slate-300">
+          Genesis Block Initialized
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 text-sm">
+
+          <div>
+            <p className="text-slate-400">Source IP</p>
+            <p className="text-white font-medium">
+              {block.data.source_ip}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-slate-400">Event Type</p>
+            <p className="text-white font-medium">
+              {block.data.event_type}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-slate-400">Risk Level</p>
+            <p className="text-yellow-300 font-medium">
+              {block.data.ai_analysis?.risk}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-slate-400">Threat Type</p>
+            <p className="text-red-300 font-medium">
+              {block.data.ai_analysis?.attack_type}
+            </p>
+          </div>
+
+          <div className="col-span-2">
+            <p className="text-slate-400">Message</p>
+            <p className="text-slate-200">
+              {block.data.message}
+            </p>
+          </div>
+
+          <div className="col-span-2 mt-3">
+            <p className="text-slate-400 mb-1">Hash</p>
+            <p className="text-emerald-300 text-xs break-all bg-slate-900 p-3 rounded-lg">
+              {block.hash}
+            </p>
+          </div>
+
+          <div className="col-span-2">
+            <p className="text-slate-400 mb-1">Previous Hash</p>
+            <p className="text-blue-300 text-xs break-all bg-slate-900 p-3 rounded-lg">
+              {block.previous_hash}
+            </p>
+          </div>
+
+        </div>
+      )}
+    </div>
+  ))}
+</div>
+  );
+};
+
+const App = () => {
+  const [page, setPage] = useState("dashboard");
+  const [backendStatus, setBackendStatus] = useState("Checking");
+
+  useEffect(() => {
+    const checkBackend = () => {
+      fetch("http://127.0.0.1:8000/")
+        .then(() => setBackendStatus("Connected"))
+        .catch(() => setBackendStatus("Disconnected"));
+    };
+
+    checkBackend();
+
+    const interval = setInterval(checkBackend, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const nav = [
+    ["dashboard", "Dashboard"],
+    ["logs", "Live Logs"],
+    ["blockchain", "Blockchain"]
+  ];
+
+  const renderPage = () => {
+    if (page === "logs") return <LogsPage />;
+    if (page === "blockchain") return <BlockchainPage />;
+    return <DashboardPage />;
+  };
+
+  return (
+    <div className="flex h-screen">
+      <aside className="w-72 glass border-r border-slate-700/50 p-6">
+        <h1 className="text-3xl font-bold text-white">
+          AI-SOC
+        </h1>
+
+        <p className="text-xs text-blue-300 mt-1 mb-8">
+          Neural Threat Monitoring
+        </p>
+
+        <div className="space-y-3">
+          {nav.map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setPage(key)}
+              className={`w-full text-left px-4 py-3 rounded-xl transition ${
+                page === key
+                  ? "bg-blue-600 text-white glow"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-10 text-xs text-slate-500">
+          Backend:{" "}
+          <span
+            className={
+              backendStatus === "Connected"
+                ? "text-emerald-400"
+                : backendStatus === "Disconnected"
+                ? "text-red-400"
+                : "text-yellow-400"
+            }
+          >
+            {backendStatus}
+          </span>
+
+          <br />
+
+          API: 127.0.0.1:8000
+        </div>
+      </aside>
+
+      <main className="flex-1 overflow-y-auto">
+        {renderPage()}
+      </main>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

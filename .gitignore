@@ -10,6 +10,7 @@ __pycache__/
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
-
+soc_logs.db
 # OS files
 .DS_Store
+
