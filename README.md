@@ -2,21 +2,6 @@
 AI-powered Security Operations Center using Machine Learning
 >>>>>>> 14a40d6b88161654af53c38df42214126850c84c
 
-Yes — definitely add a proper `README.md` before final upload and push.
-
-A good README:
-
-* makes the repository look professional,
-* helps evaluators run the project,
-* improves presentation quality,
-* and supports your appendix/user guide.
-
-Keep it concise and practical.
-
-Here’s a strong structure for your AI-SOC project:
-
----
-
 # AI-SOC — Artificial Intelligence–Driven Security Operations Center
 
 ## Overview
